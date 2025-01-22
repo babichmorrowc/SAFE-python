@@ -29,10 +29,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from safepython.util import empiricalcdf, split_sample
-from safepython.lhcube import lhcube_shrink
-
-from safepython.util import allrange, above, below
+from safepython.util import allrange
 
 from safepython.PAWN import pawn_split_sample
 from safepython.PAWN import pawn_ks
