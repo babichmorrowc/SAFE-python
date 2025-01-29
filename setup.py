@@ -21,7 +21,8 @@ setup(
     author='Francesca Pianosi, Fanny Sarrazin, Thorsten Wagener',  # Optional
     author_email='fanny.sarrazin@inrae.fr',  # Optional
     license='GPL-3.0', # Optional
-    packages=find_packages(exclude=['examples']),  # Required
+    packages=find_packages(where="src",exclude=['examples']),  # Required
+    package_dir={"": "src"},
 #    python_requires='>=3.7, <4',
     install_requires=[
         "numpy>=1.19.2",
