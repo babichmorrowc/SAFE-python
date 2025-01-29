@@ -258,7 +258,11 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
     for i in range(M): # loop over inputs
         fC[i] = [np.nan] * n_eff[i]
         for k in range(n_eff[i]): # loop over conditioning intervals
-            fC[i][k] = np.unique(YY[i][k], return_counts=True)[1]/len(YY[i][k])
+            # fC[i][k] = np.unique(YY[i][k], return_counts=True)[1]/len(YY[i][k])
+            unique_vals, counts = np.unique(YY[i][k], return_counts=True)
+            count_dict = dict(zip(unique_vals, counts))
+            counts = np.array([count_dict.get(val, 0) for val in YF])
+            fC[i][k] = counts / len(YY[i][k])
 
     # Initialize unconditional PMFs:
     fU = [np.nan] * M
@@ -317,8 +321,12 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
             idx_bootstrap = np.random.choice(np.arange(0, N, 1),
                                              size=(bootsize_unique[kk], ),
                                              replace='False')
-            # Compute unconditional CDF:
-            fUkk = np.unique(Y[idx_bootstrap], return_counts=True)[1]/len(Y_loc[idx_bootstrap])
+            # Compute unconditional PMF:
+            # fUkk = np.unique(Y[idx_bootstrap], return_counts=True)[1]/len(Y[idx_bootstrap])
+            unique_vals, counts = np.unique(Y[idx_bootstrap], return_counts=True)
+            count_dict = dict(zip(unique_vals, counts))
+            counts = np.array([count_dict.get(val, 0) for val in YF])
+            fUkk = counts / len(Y[idx_bootstrap])
             # Associate the fUkk to all inputs that require an unconditional
             # output of size bootsize_unique[kk]:
             idx_input = np.where([i == bootsize_unique[kk] for i in bootsize])[0]
@@ -345,7 +353,11 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
                                          size=(bootsize_min, ),
                                          replace='False')
             # Compute empirical PMFs for the dummy input:
-            fC_dummy = np.unique(Y[idx_dummy], return_counts=True)[1]/len(Y[idx_dummy])
+            # fC_dummy = np.unique(Y[idx_dummy], return_counts=True)[1]/len(Y[idx_dummy])
+            unique_vals, counts = np.unique(Y[idx_dummy], return_counts=True)
+            count_dict = dict(zip(unique_vals, counts))
+            counts = np.array([count_dict.get(val, 0) for val in YF])
+            fC_dummy = counts / len(Y[idx_dummy])
             # Compute KS statistic for the dummy input:
             KS_dummy[b] = pawn_ks(YF, [fU[idx_bootsize_min]], [[fC_dummy]],
                                   output_condition, par)[0][0]
