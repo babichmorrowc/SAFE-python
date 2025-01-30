@@ -50,17 +50,17 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
     from any distribution(see help of PAWN.pawn_split_sample for further explanation).
 
     Indices are then computed in two steps:
-    1. compute the Kolmogorov-Smirnov (KS) statistic between the empirical
-    unconditional CDF and the conditional CDFs for different conditioning
+    1. compute the maximum distance between the empirical
+    unconditional PMF and the conditional PMFs for different conditioning
     intervals
     2. take a statistic (median, mean and max) of the results.
 
     Usage:
 
-        KS_median, KS_mean, KS_max = \
+        max_dist_median, max_dist_mean, max_dist_max = \
         PAWN.pawn_indices(X, Y, n, Nboot=1, dummy=False)
 
-        KS_median, KS_mean, KS_max, KS_dummy = \
+        max_dist_median, max_dist_mean, max_dist_max, max_dist_dummy = \
         PAWN.pawn_indices(X, Y, n, Nboot=1, dummy=True)
 
     Input:
@@ -90,18 +90,18 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
                 (see (*) for further explanation).
 
     Output:
-    KS_median = median KS across the conditioning      - numpy.ndarray(Nboot,M)
+    max_dist_median = median maximum distance across the conditioning      - numpy.ndarray(Nboot,M)
                 intervals (one value for each input
                 and each bootstrap resample)
-      KS_mean = mean KS across the conditioning        - numpy.ndarray(Nboot,M)
+      max_dist_mean = mean maximum distance across the conditioning        - numpy.ndarray(Nboot,M)
                 intervals (one value for each input
                 and each bootstrap resample)
-       KS_max = max KS across the conditioning         - numpy.ndarray(Nboot,M)
+       max_dist_max = max maximum distance across the conditioning         - numpy.ndarray(Nboot,M)
                 intervals (one value for each input
                 and each bootstrap resample)
 
     Optional output (if dummy is True):
-    KS_dummy = KS of dummy input (one value for       - numpy.ndarray(Nboot, )
+    max_dist_dummy = maximum distance of dummy input (one value for       - numpy.ndarray(Nboot, )
                 each bootstrap resample)
 
     --------------------------------------------------------------------------
@@ -110,17 +110,17 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
     -------------------------------------------------------------------------
     Usage:
 
-    KS_median, KS_mean, KS_max = \
+    max_dist_median, max_dist_mean, max_dist_max = \
     PAWN.pawn_indices(X, Y, n, Nboot=1, dummy=False,
                       output_condition=allrange, par=[]))
 
-    KS_median, KS_mean, KS_max, KS_dummy = \
+    max_dist_median, max_dist_mean, max_dist_max, max_dist_dummy = \
     PAWN.pawn_indices(X, Y, n, Nboot=1, dummy=True,
                       output_condition=allrange, par=[]))
 
     Optional input:
     output_condition = condition on the output value to be     - function
-                       used to calculate KS. Use the function:
+                       used to calculate maximum distances. Use the function:
                        - allrange to keep all output values
                        - below to consider only output
                           values below a threshold value
@@ -147,8 +147,8 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
 
     NOTE:
      (*) For screening influential and non-influential inputs, we recommend the
-         use of the maximum KS across the conditioning intervals (i.e. output
-         argument KS_max), and to compare KS_max with the index of the dummy
+         use of the maximum maximum distance across the conditioning intervals (i.e. output
+         argument max_dist_max), and to compare max_dist_max with the index of the dummy
          input as in Khorashadi Zadeh et al. (2017).
 
     (**) For each input, the number of conditioning intervals which is actually
@@ -177,16 +177,16 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
 
     # Compute PAWN sensitivity indices:
     n = 10; # number of conditioning intervals
-    KS_median, KS_mean, KS_max = PAWN.pawn_indices(X, Y, n)
+    max_dist_median, max_dist_mean, max_dist_max = PAWN.pawn_indices(X, Y, n)
     plt.figure()
-    plt.subplot(131); boxplot1(KS_median, Y_Label='KS (mean')
-    plt.subplot(132); boxplot1(KS_mean, Y_Label='KS (mean')
-    plt.subplot(133); boxplot1(KS_max, Y_Label='KS (max)')
+    plt.subplot(131); boxplot1(max_dist_median, Y_Label='Max Dist (mean')
+    plt.subplot(132); boxplot1(max_dist_mean, Y_Label='Max Dist (mean')
+    plt.subplot(133); boxplot1(max_dist_max, Y_Label='Max Dist (max)')
 
     # Compute sensitivity indices for the dummy input as well:
-    KS_median, KS_mean, KS_max, KS_dummy = PAWN.pawn_indices(X, Y, n, dummy=True)
+    max_dist_median, max_dist_mean, max_dist_max, max_dist_dummy = PAWN.pawn_indices(X, Y, n, dummy=True)
     plt.figure()
-    boxplot1(np.concatenate((KS_max, KS_dummy)),
+    boxplot1(np.concatenate((max_dist_max, max_dist_dummy)),
              X_Labels=['X1', 'X2', 'X3', 'dummy'])
 
     REFERENCES
@@ -246,11 +246,11 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
     YF = np.unique(Y)
 
     # Initialize sensitivity indices
-    KS_median = np.nan * np.ones((Nboot, M))
-    KS_mean = np.nan * np.ones((Nboot, M))
-    KS_max = np.nan * np.ones((Nboot, M))
+    max_dist_median = np.nan * np.ones((Nboot, M))
+    max_dist_mean = np.nan * np.ones((Nboot, M))
+    max_dist_max = np.nan * np.ones((Nboot, M))
     if dummy: # Calculate index for the dummy input
-        KS_dummy = np.nan * np.ones((Nboot, ))
+        max_dist_dummy = np.nan * np.ones((Nboot, ))
 
     # Compute conditional PMFs
     # (bootstrapping is not used to assess conditional PMFs):
@@ -315,7 +315,7 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
         # Compute empirical unconditional PMFs
         for kk in range(N_compute): # loop over the sizes of the unconditional output
 
-            # Bootstrap resapling (Extract an unconditional sample of size
+            # Bootstrap resampling (Extract an unconditional sample of size
             # bootsize_unique[kk] by drawing data points from the full sample Y
             # without replacement
             idx_bootstrap = np.random.choice(np.arange(0, N, 1),
@@ -333,20 +333,20 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
             for i in range(len(idx_input)):
                 fU[idx_input[i]] = fUkk
 
-        # Compute KS statistic between conditional and unconditional CDFs:
-        KS_all = pawn_ks(YF, fU, fC, output_condition, par)
-        # KS_all is a list (M elements) and contains the value of the KS for
-        # for each input and each conditioning interval. KS[i] contains values
+        # Compute maximum distance between conditional and unconditional PMFs:
+        max_dist_all = pawn_ks(YF, fU, fC, output_condition, par)
+        # max_dist_all is a list (M elements) and contains the value of the max distance for
+        # for each input and each conditioning interval. max_dist_all[i] contains values
         # for the i-th input and the n_eff[i] conditioning intervals, and it
         # is a numpy.ndarray of shape (n_eff[i], ).
 
-        #  Take a statistic of KS across the conditioning intervals:
-        KS_median[b, :] = np.array([np.median(j) for j in KS_all])  # shape (M,)
-        KS_mean[b, :] = np.array([np.mean(j) for j in KS_all])  # shape (M,)
-        KS_max[b, :] = np.array([np.max(j) for j in KS_all])  # shape (M,)
+        #  Take a statistic of the maximum distance across the conditioning intervals:
+        max_dist_median[b, :] = np.array([np.median(j) for j in max_dist_all])  # shape (M,)
+        max_dist_mean[b, :] = np.array([np.mean(j) for j in max_dist_all])  # shape (M,)
+        max_dist_max[b, :] = np.array([np.max(j) for j in max_dist_all])  # shape (M,)
 
         if dummy:
-            # Compute KS statistic for dummy parameter:
+            # Compute maximum distance for dummy parameter:
             # Bootstrap again from unconditional sample (the size of the
             # resample is equal to bootsize_min):
             idx_dummy = np.random.choice(np.arange(0, N, 1),
@@ -358,42 +358,42 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
             count_dict = dict(zip(unique_vals, counts))
             counts = np.array([count_dict.get(val, 0) for val in YF])
             fC_dummy = counts / len(Y[idx_dummy])
-            # Compute KS statistic for the dummy input:
-            KS_dummy[b] = pawn_ks(YF, [fU[idx_bootsize_min]], [[fC_dummy]],
+            # Compute maximum distance for the dummy input:
+            max_dist_dummy[b] = pawn_ks(YF, [fU[idx_bootsize_min]], [[fC_dummy]],
                                   output_condition, par)[0][0]
 
     if Nboot == 1:
-        KS_median = KS_median.flatten()
-        KS_mean = KS_mean.flatten()
-        KS_max = KS_max.flatten()
+        max_dist_median = max_dist_median.flatten()
+        max_dist_mean = max_dist_mean.flatten()
+        max_dist_max = max_dist_max.flatten()
 
     if dummy:
-        return KS_median, KS_mean, KS_max, KS_dummy
+        return max_dist_median, max_dist_mean, max_dist_max, max_dist_dummy
     else:
-        return KS_median, KS_mean, KS_max
+        return max_dist_median, max_dist_mean, max_dist_max
 
 
-def pawn_plot_cdf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
+def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
                   labelinput=''):
 
-    """ This function computes and plots the unconditional output Cumulative
-    Distribution Funtions (i.e. when all inputs vary) and the conditional CDFs
+    """ This function computes and plots the unconditional output Probability
+    Mass Functions (i.e. when all inputs vary) and the conditional PMFs
     (when one input is fixed to a given conditioning interval, while the other
     inputs vary freely).
 
     The function splits the output sample to create the conditional output
     by calling internally the function PAWN.pawn_split_sample. The splitting
-    strategy is an extension of the strategy for uniformy distributed inputs
+    strategy is an extension of the strategy for uniformly distributed inputs
     described in Pianosi and Wagener (2018) to handle inputs sampled from any
     distribution.
     (see help of PAWN.pawn_split_sample for further explanation).
 
-    The sensitivity indices for the PAWN method (KS statistic) measures the
-    distance between these conditional and unconditional output CDFs
-    (see help of PAWN.pawn_indices for further details and reference).
+    The sensitivity indices for the PAWN method (maximum distance) measures the
+    distance between these conditional and unconditional output PMFs
+    (see help of PAWN.pawn_pmf_indices for further details and reference).
 
     Usage:
-    YF, FU, FC, xc = PAWN.pawn_plot_cdf(X, Y, n, n_col=5, Y_Label='output y',
+    YF, fU, fC, xc = PAWN.pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y',
                                         cbar=False, labelinput='')
 
     Input:
@@ -409,27 +409,27 @@ def pawn_plot_cdf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
                  (default: min(5, M))
        Y_Label = legend for the horizontal axis            - string
                  (default: 'output y')
-          cbar = flag to add a colobar that indicates the  - boolean
+          cbar = flag to add a colorbar that indicates the  - boolean
                  centers of the conditioning intervals for
-                 the different conditional CDFs:
+                 the different conditional PMFs:
                  - if True = colorbar
                  - if False = no colorbar
     labelinput = label for the axis of colorbar (input    - list (M elements)
                  name) (default: ['X1','X2',...,XM'])
 
     Output:
-            YF = values of Y at which the CDFs FU and FC   - numpy.ndarray(P, )
+            YF = values of Y at which the PMFs fU and fC   - numpy.ndarray(P, )
                  are given
-            FU = values of the empirical unconditional     - list(M elements)
-                 output CDFs. FU[i] is a numpy.ndarray(P, )
+            fU = values of the empirical unconditional     - list(M elements)
+                 output PMFs. fU[i] is a numpy.ndarray(P, )
                  (see the Note below for further
                  explanation)
-            FC = values of the empirical conditional       - list(M elements)
-                 output CDFs for each input and each
+            fC = values of the empirical conditional       - list(M elements)
+                 output PMFs for each input and each
                  conditioning interval.
-                 FC[i] is a list of n_eff[i] CDFs
+                 fC[i] is a list of n_eff[i] CDFs
                  conditional to the i-th input.
-                 FC[i][k] is obtained by fixing the i-th
+                 fC[i][k] is obtained by fixing the i-th
                  input to its k-th conditioning interval
                  (while the other inputs vary freely),
                  and it is a np.ndarray of shape (P, ).
@@ -448,10 +448,10 @@ def pawn_plot_cdf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
          time belong to the same group.
          See the help of PAWN.pawn_split_sample for further details.
 
-    (**) FU[i] and FC[i][k] (for any given i and k) are built using the same
+    (**) fU[i] and fC[i][k] (for any given i and k) are built using the same
          number of data points so that two CDFs can be compared by calculating
-         the KS statistic (see help of PAWN.pawn_ks and PAWN.pawn_indices
-         for further explanation on the calculation of the KS statistic).
+         the maximum distance (see help of PAWN.pawn_ks and PAWN.pawn_indices
+         for further explanation on the calculation).
 
     Example:
 
@@ -529,23 +529,28 @@ def pawn_plot_cdf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
             raise ValueError('"labelinput" must have M elements.')
 
     ###########################################################################
-    # Compute CDFs
+    # Compute PMFs
     ###########################################################################
 
     # Set points at which the CDFs will be evaluated:
     YF = np.unique(Y)
 
-    # Compute conditional CDFs:
-    FC = [np.nan] * M
+    # Compute conditional PMFs
+    # (bootstrapping is not used to assess conditional PMFs):
+    fC = [np.nan] * M
     for i in range(M): # loop over inputs
-        FC[i] = [np.nan] * n_eff[i]
+        fC[i] = [np.nan] * n_eff[i]
         for k in range(n_eff[i]): # loop over conditioning intervals
-            FC[i][k] = empiricalcdf(YY[i][k], YF)
+            # fC[i][k] = np.unique(YY[i][k], return_counts=True)[1]/len(YY[i][k])
+            unique_vals, counts = np.unique(YY[i][k], return_counts=True)
+            count_dict = dict(zip(unique_vals, counts))
+            counts = np.array([count_dict.get(val, 0) for val in YF])
+            fC[i][k] = counts / len(YY[i][k])
 
-    # Initialize unconditional CDFs:
-    FU = [np.nan] * M
+    # Initialize unconditional PMFs:
+    fU = [np.nan] * M
 
-    # M unconditional CDFs are computed (one for each input), so that for
+    # M unconditional PMFs are computed (one for each input), so that for
     # each input the conditional and unconditional CDFs are computed using the
     # same number of data points (when the number of conditioning intervals
     # n_eff[i] varies across the inputs, so does the shape of the conditional
@@ -571,13 +576,17 @@ def pawn_plot_cdf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
         # points from the full sample Y without replacement
         idx = np.random.choice(np.arange(0, N, 1), size=(NU_unique[kk], ),
                                replace='False')
-        # Compute unconditional output CDF:
-        FUkk = empiricalcdf(Y[idx], YF)
-        # Associate the FUkk to all inputs that require an unconditional output
+        # Compute unconditional output PMF:
+        # FUkk = empiricalcdf(Y[idx], YF)
+        unique_vals, counts = np.unique(Y[idx], return_counts=True)
+        count_dict = dict(zip(unique_vals, counts))
+        counts = np.array([count_dict.get(val, 0) for val in YF])
+        fUkk = counts / len(Y[idx])
+        # Associate the fUkk to all inputs that require an unconditional output
         # of size NU_unique[kk]:
         idx_input = np.where([i == NU_unique[kk] for i in NU])[0]
         for j in range(len(idx_input)):
-            FU[idx_input[j]] = FUkk
+            fU[idx_input[j]] = fUkk
 
     ###########################################################################
     # Plot
@@ -608,12 +617,12 @@ def pawn_plot_cdf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
 
         # Plot conditional CDFs in gray scale:
         for k in range(n_eff[i]):
-            plt.plot(YF, FC[i][iii[k]], color=cmap(k), linewidth=2)
+            plt.plot(YF, fC[i][iii[k]], color=cmap(k), linewidth=2)
         plt.xticks(**pltfont); plt.yticks(**pltfont)
         plt.xlabel(Y_Label, **pltfont)
 
         # Plot unconditional CDF in red:
-        plt.plot(YF, FU[i], 'r', linewidth=3)
+        plt.plot(YF, fU[i], 'r', linewidth=3)
 
         plt.xlim([min(YF), max(YF)]); plt.ylim([-0.02, 1.02])
 
@@ -636,7 +645,7 @@ def pawn_plot_cdf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
              # Map.set_clim(0,1-1/(n+1))
              ax.set_aspect('auto') # Ensure that axes do not shrink
 
-    return YF, FU, FC, xc
+    return YF, fU, fC, xc
 
 
 def pawn_plot_ks(YF, FU, FC, xc, n_col=5, X_Labels='',
