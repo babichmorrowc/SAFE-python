@@ -164,7 +164,7 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
     import scipy.stats as st
     from safepython.sampling import AAT_sampling
     from safepython.model_execution import model_execution
-    from safepython import PAWN
+    from safepython import PAWN_pmf
     from safepython.plot_functions import boxplot1
     from safepython.ishigami_homma import ishigami_homma_function
 
@@ -304,7 +304,7 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
 
         if N_compute > 1:
             warn('The number of data points to estimate the conditional and '+
-                 'unconditional output varies across the inputs. The CDFs ' +
+                 'unconditional output varies across the inputs. The PMFs ' +
                  'for the dummy input were computed using the minimum sample ' +
                  ' size to provide an estimate of the "worst" approximation' +
                  ' of the sensitivity indices across input.')
@@ -427,7 +427,7 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
             fC = values of the empirical conditional       - list(M elements)
                  output PMFs for each input and each
                  conditioning interval.
-                 fC[i] is a list of n_eff[i] CDFs
+                 fC[i] is a list of n_eff[i] PMFs
                  conditional to the i-th input.
                  fC[i][k] is obtained by fixing the i-th
                  input to its k-th conditioning interval
@@ -449,7 +449,7 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
          See the help of PAWN.pawn_split_sample for further details.
 
     (**) fU[i] and fC[i][k] (for any given i and k) are built using the same
-         number of data points so that two CDFs can be compared by calculating
+         number of data points so that two PMFs can be compared by calculating
          the maximum distance (see help of PAWN.pawn_ks and PAWN.pawn_indices
          for further explanation on the calculation).
 
@@ -471,10 +471,10 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
     X = AAT_sampling('lhs', M, st.uniform, [xmin, xmax - xmin], N);
     Y = model_execution(ishigami_homma_function, X)
 
-    # Calculate and plot CDFs
+    # Calculate and plot PMFs
     n = 10 # number of conditioning intervals
-    YF, FU, FC, xc = PAWN.pawn_plot_cdf(X, Y, n)
-    YF, FU, FC, xc = PAWN.pawn_plot_cdf(X, Y, n, cbar=True) # Add colorbar
+    YF, FU, FC, xc = PAWN.pawn_plot_pmf(X, Y, n)
+    YF, FU, FC, xc = PAWN.pawn_plot_pmf(X, Y, n, cbar=True) # Add colorbar
 
     This function is part of the SAFE Toolbox by F. Pianosi, F. Sarrazin
     and T. Wagener at Bristol University (2015).
@@ -532,7 +532,7 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
     # Compute PMFs
     ###########################################################################
 
-    # Set points at which the CDFs will be evaluated:
+    # Set points at which the PMFs will be evaluated:
     YF = np.unique(Y)
 
     # Compute conditional PMFs
@@ -551,7 +551,7 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
     fU = [np.nan] * M
 
     # M unconditional PMFs are computed (one for each input), so that for
-    # each input the conditional and unconditional CDFs are computed using the
+    # each input the conditional and unconditional PMFs are computed using the
     # same number of data points (when the number of conditioning intervals
     # n_eff[i] varies across the inputs, so does the shape of the conditional
     # outputs YY[i]).
@@ -564,11 +564,11 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
     # input are repeated several times (more details on this in the Note in the
     #  help of the function).
 
-    # To reduce the computational time (the calculation of empirical CDF is
-    # costly), the unconditional CDF is computed only once for all inputs that
+    # To reduce the computational time (the calculation of empirical PMF is
+    # costly), the unconditional PMF is computed only once for all inputs that
     # have the same value of NU[i].
     NU_unique = np.unique(NU)
-    N_compute = len(NU_unique) # number of unconditional CDFs that will be computed
+    N_compute = len(NU_unique) # number of unconditional PMFs that will be computed
 
     for kk in range(N_compute): # loop over the sizes of the unconditional output
 
@@ -577,7 +577,6 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
         idx = np.random.choice(np.arange(0, N, 1), size=(NU_unique[kk], ),
                                replace='False')
         # Compute unconditional output PMF:
-        # FUkk = empiricalcdf(Y[idx], YF)
         unique_vals, counts = np.unique(Y[idx], return_counts=True)
         count_dict = dict(zip(unique_vals, counts))
         counts = np.array([count_dict.get(val, 0) for val in YF])
@@ -594,7 +593,7 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
     n_col = min(n_col, M) # n_col <= M
     n_row = int(np.ceil(M/n_col))
 
-    plt.figure()
+    plt.figure(layout = 'constrained')
 
     for i in range(M): # loop over inputs
 
@@ -615,13 +614,13 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
         # Plot a horizontal dashed line at F=1:
         plt.plot(YF, np.ones(YF.shape), '--k')
 
-        # Plot conditional CDFs in gray scale:
+        # Plot conditional PMFs in gray scale:
         for k in range(n_eff[i]):
             plt.plot(YF, fC[i][iii[k]], color=cmap(k), linewidth=2)
         plt.xticks(**pltfont); plt.yticks(**pltfont)
         plt.xlabel(Y_Label, **pltfont)
 
-        # Plot unconditional CDF in red:
+        # Plot unconditional PMF in red:
         plt.plot(YF, fU[i], 'r', linewidth=3)
 
         plt.xlim([min(YF), max(YF)]); plt.ylim([-0.02, 1.02])
@@ -652,23 +651,23 @@ def pawn_plot_ks(YF, FU, FC, xc, n_col=5, X_Labels='',
                  output_condition=allrange, par=[]):
 
     """ This function computes and plots the Kolmogorov-Smirnov (KS) statistic
-    between conditional and unconditional output CDFs for each input and each
+    between conditional and unconditional output PMFs for each input and each
     conditioning interval.
 
     Usage:
         KS_all = pawn_plot_ks(YF, FU, FC, xc, n_col=5, X_Labels='')
 
     Input:
-         YF = values of Y at which the CDFs FU and FC      - numpy.ndarray(P, )
+         YF = values of Y at which the PMFs FU and FC      - numpy.ndarray(P, )
                  are given
          FU = values of the empirical unconditional        - list(M elements)
-                 output CDFs. FU[i] is a numpy.ndarray(P, )
+                 output PMFs. FU[i] is a numpy.ndarray(P, )
                  (see the Note below for further
                  explanation)
          FC = values of the empirical conditional          - list(M elements)
-                 output CDFs for each input and each
+                 output PMFs for each input and each
                  conditioning interval.
-                 FC[i] is a list of n_eff[i] CDFs
+                 FC[i] is a list of n_eff[i] PMFs
                  conditional to the i-th input.
                  FC[i][k] is obtained by fixing the i-th
                  input to its k-th conditioning interval
@@ -682,7 +681,7 @@ def pawn_plot_ks(YF, FU, FC, xc, n_col=5, X_Labels='',
                 contains the centers for the n_eff[i]
                 conditioning intervals for the i-th input.
 
-    Note: YF, FU, FC and xc are computed using the function PAWN.pawn_plot_cdf
+    Note: YF, FU, FC and xc are computed using the function PAWN.pawn_plot_pmf
 
     Optional input:
       n_col = number of panels per row in the plot        - integer
@@ -717,7 +716,7 @@ def pawn_plot_ks(YF, FU, FC, xc, n_col=5, X_Labels='',
     import scipy.stats as st
     from safepython.sampling import AAT_sampling
     from safepython.model_execution import model_execution
-    from safepython import PAWN
+    from safepython import PAWN_pmf
     from safepython.plot_functions import boxplot1
     from safepython.ishigami_homma import ishigami_homma_function
 
@@ -728,12 +727,12 @@ def pawn_plot_ks(YF, FU, FC, xc, n_col=5, X_Labels='',
     X = AAT_sampling('lhs', M, st.uniform, [xmin, xmax - xmin], N);
     Y = model_execution(ishigami_homma_function, X)
 
-    # Calculate CDFs:
+    # Calculate PMFs:
     n = 10 # number of conditioning intervals
-    YF, FU, FC, xc = PAWN.pawn_plot_cdf(X, Y, n)
+    YF, FU, FC, xc = PAWN_pmf.pawn_plot_pmf(X, Y, n)
 
     # Calculate and plot KS statistics:
-    KS_all = PAWN.pawn_plot_ks(YF, FU, FC, xc)
+    KS_all = PAWN_pmf.pawn_plot_ks(YF, FU, FC, xc)
 
     This function is part of the SAFE Toolbox by F. Pianosi, F. Sarrazin
     and T. Wagener at Bristol University (2015).
