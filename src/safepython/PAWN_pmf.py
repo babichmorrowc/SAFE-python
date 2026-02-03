@@ -611,19 +611,31 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
             Map = plt.imshow(np.array([[0, 1]]), cmap=cmap)
             plt.cla() # clear axes (do not display the dummy map)
 
-        # Plot a horizontal dashed line at F=1:
-        plt.plot(YF, np.ones(YF.shape), '--k')
+        # Plot conditional PMFs as grouped bar plots in gray scale:
+        # Determine bar widths based on spacing in YF:
+        if len(YF) > 1:
+            dy = np.diff(np.sort(YF))
+            dx = np.min(dy[dy > 0]) if np.any(dy > 0) else (max(YF)-min(YF))/len(YF)
+            if dx == 0 or np.isnan(dx):
+                dx = 1.0
+        else:
+            dx = 1.0
+        bar_total_width = dx * 0.9
+        bar_width = bar_total_width / (n_eff[i] + 1.0)  # +1 space for unconditional bar
 
-        # Plot conditional PMFs in gray scale:
         for k in range(n_eff[i]):
-            plt.plot(YF, fC[i][iii[k]], color=cmap(k), linewidth=2)
+            offsets = (k - (n_eff[i]-1)/2.0) * bar_width
+            x_positions = YF + offsets
+            plt.bar(x_positions, fC[i][iii[k]], width=bar_width, color=cmap(k),
+                    edgecolor='k', align='center', alpha=0.9)
         plt.xticks(**pltfont); plt.yticks(**pltfont)
         plt.xlabel(Y_Label, **pltfont)
 
-        # Plot unconditional PMF in red:
-        plt.plot(YF, fU[i], 'r', linewidth=3)
+        # Plot unconditional PMF as a red bar centered on YF:
+        plt.bar(YF, fU[i], width=bar_total_width*0.95, color='r',
+                edgecolor='k', align='center', alpha=0.6, linewidth=1.5)
 
-        plt.xlim([min(YF), max(YF)]); plt.ylim([-0.02, 1.02])
+        plt.xlim([min(YF)-bar_total_width, max(YF)+bar_total_width]); plt.ylim([-0.02, 1.02])
 
         if cbar: # Add colorbar to the left
              cb_ticks = [' '] * n_eff[i]
