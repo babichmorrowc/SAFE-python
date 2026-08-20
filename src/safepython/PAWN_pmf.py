@@ -631,11 +631,13 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
         plt.xticks(**pltfont); plt.yticks(**pltfont)
         plt.xlabel(Y_Label, **pltfont)
 
-        # Plot unconditional PMF as a red bar centered on YF:
-        plt.bar(YF, fU[i], width=bar_total_width*0.95, color='r',
-                edgecolor='k', align='center', alpha=0.6, linewidth=1.5)
+        # Plot unconditional PMF as a red bar to the left of the grouped bars:
+        offset_uncond = - (n_eff[i] + 1.0) / 2.0 * bar_width
+        x_uncond = YF + offset_uncond
+        plt.bar(x_uncond, fU[i], width=1.5*bar_width, color='r',
+            edgecolor='k', align='center', linewidth=1.5)
 
-        plt.xlim([min(YF)-bar_total_width, max(YF)+bar_total_width]); plt.ylim([-0.02, 1.02])
+        plt.xlim([min(YF)-bar_total_width*1.5, max(YF)+bar_total_width]); plt.ylim([-0.02, 1.02])
 
         if cbar: # Add colorbar to the left
              cb_ticks = [' '] * n_eff[i]
