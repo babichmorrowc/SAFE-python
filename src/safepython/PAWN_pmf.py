@@ -374,7 +374,7 @@ def pawn_pmf_indices(X, Y, n, Nboot=1, dummy=False, output_condition=allrange,
 
 
 def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
-                  labelinput=''):
+                  labelinput='', cbar_ticklabels=None):
 
     """ This function computes and plots the unconditional output Probability
     Mass Functions (i.e. when all inputs vary) and the conditional PMFs
@@ -416,6 +416,9 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
                  - if False = no colorbar
     labelinput = label for the axis of colorbar (input    - list (M elements)
                  name) (default: ['X1','X2',...,XM'])
+    cbar_ticklabels = custom tick labels for each input's colorbar - list (M elements)
+                 Each element is a list of n_eff[i] strings, or None to use
+                 the default numeric conditioning-center labels.
 
     Output:
             YF = values of Y at which the PMFs fU and fC   - numpy.ndarray(P, )
@@ -528,6 +531,21 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
         if len(labelinput) != M:
             raise ValueError('"labelinput" must have M elements.')
 
+    if cbar_ticklabels is None:
+        cbar_ticklabels = [None] * M
+    elif not isinstance(cbar_ticklabels, list) or len(cbar_ticklabels) != M:
+        raise ValueError('"cbar_ticklabels" must be a list with M elements.')
+    for i, ticklabels in enumerate(cbar_ticklabels):
+        if ticklabels is not None:
+            if not isinstance(ticklabels, (list, tuple)):
+                raise ValueError('Each non-None element in "cbar_ticklabels" '
+                                 'must be a list or tuple of strings.')
+            if len(ticklabels) != n_eff[i]:
+                raise ValueError('Each "cbar_ticklabels" entry must have '
+                                 'n_eff[i] labels.')
+            if not all(isinstance(label, str) for label in ticklabels):
+                raise ValueError('Elements in "cbar_ticklabels" must be strings.')
+
     ###########################################################################
     # Compute PMFs
     ###########################################################################
@@ -593,7 +611,7 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
     n_col = min(n_col, M) # n_col <= M
     n_row = int(np.ceil(M/n_col))
 
-    plt.figure(layout = 'constrained')
+    fig = plt.figure(layout='constrained')
 
     for i in range(M): # loop over inputs
 
@@ -607,9 +625,12 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
         plt.subplot(n_row, n_col, i+1)
         ax = plt.gca()
 
-        if cbar: # plot dummy mappable to generate the colorbar
-            Map = plt.imshow(np.array([[0, 1]]), cmap=cmap)
-            plt.cla() # clear axes (do not display the dummy map)
+        if cbar: # create a discrete mappable for the colorbar
+            boundaries = np.arange(n_eff[i] + 1)
+            legend_cmap = mpl.colors.ListedColormap(
+                [cmap(k) for k in range(n_eff[i])])
+            norm = mpl.colors.BoundaryNorm(boundaries, legend_cmap.N)
+            Map = mpl.cm.ScalarMappable(norm=norm, cmap=legend_cmap)
 
         # Plot conditional PMFs as grouped bar plots in gray scale:
         # Determine bar widths based on spacing in YF:
@@ -640,19 +661,16 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
         plt.xlim([min(YF)-bar_total_width*1.5, max(YF)+bar_total_width]); plt.ylim([-0.02, 1.02])
 
         if cbar: # Add colorbar to the left
-             cb_ticks = [' '] * n_eff[i]
-             for k in range(n_eff[i]):
-                 cb_ticks[k] = yticklabels_form % ccc[k]
-             # Add colorbar (do not display the white color by adjuting the
-             # input argument 'boundaries')
-             cb = plt.colorbar(Map, ax=ax,
-                               boundaries=np.linspace(0, 1-1/((n_eff[i]+1)),
-                                                      n_eff[i]+1))
+             if cbar_ticklabels[i] is None:
+                 cb_ticks = [yticklabels_form % value for value in ccc]
+             else:
+                 cb_ticks = cbar_ticklabels[i]
+             # Match each legend bin to the exact colors used by the bars.
+             cb = fig.colorbar(Map, ax=ax, boundaries=boundaries,
+                               ticks=np.arange(n_eff[i]) + 0.5,
+                               spacing='uniform')
              cb.set_label(labelinput[i], **pltfont)
              cb.Fontname = pltfont['fontname']
-             # set tick labels at the center of each color:
-             cb.set_ticks(np.linspace(1/(2*(n_eff[i]+1)), 1-3/(2*(n_eff[i]+1)),
-                                      n_eff[i]))
              cb.set_ticklabels(cb_ticks)
              cb.ax.tick_params(labelsize=pltfont['fontsize'])
              # Map.set_clim(0,1-1/(n+1))
