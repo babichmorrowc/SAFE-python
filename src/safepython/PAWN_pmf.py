@@ -679,6 +679,161 @@ def pawn_plot_pmf(X, Y, n, n_col=5, Y_Label='output y', cbar=False,
     return YF, fU, fC, xc
 
 
+def pawn_plot_pmf_by_input(YF, FU, FC, xc, n_col=5, X_Labels='', colors=None,
+                           X_ticklabels=None, colorbar_label='Output level Y',
+                           colorbar_ticklabels=None):
+
+    """Plot conditional PMFs against input values, with unconditional PMFs
+    shown as dashed horizontal lines.
+
+    Each panel represents one input. For every output level in ``YF``, the
+    conditional probability is plotted as a solid colored line against the
+    conditioning-interval centers in ``xc``; the matching unconditional
+    probability is shown as a dashed line in the same color.
+
+    The inputs can be obtained from :func:`pawn_plot_pmf`, which returns
+    ``YF, FU, FC, xc``. Unlike that function, this function only plots the
+    supplied PMFs and does not recompute them.
+
+    Parameters
+    ----------
+    YF : array-like, shape (P,)
+        Output levels at which the PMFs are evaluated.
+    FU : list of M arrays
+        Unconditional PMFs, one array of shape (P,) per input.
+    FC : list of M lists of arrays
+        Conditional PMFs. ``FC[i][k]`` is an array of shape (P,) for the
+        k-th conditioning interval of input i.
+    xc : list of M arrays
+        Conditioning-interval centers for each input.
+    n_col : int, optional
+        Number of plot panels per row (default 5).
+    X_Labels : list of str, optional
+        Input labels (default ``['X1', 'X2', ..., 'XM']``).
+    colors : sequence, optional
+        Colors for the output levels, one color per value in ``YF``.
+    X_ticklabels : list of sequences of str, optional
+        Custom tick labels for selected inputs' conditioning centers. Must
+        contain one entry per input; each entry is either a sequence with one
+        label per center or ``None`` to use the center values as labels.
+    colorbar_label : str, optional
+        Colorbar title (default ``'Output level Y'``).
+    colorbar_ticklabels : sequence of str, optional
+        Custom colorbar tick labels, one per value in ``YF``. The same subset
+        of labels is shown as the automatically selected colorbar ticks.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The created figure.
+    axes : numpy.ndarray
+        One-dimensional array of axes, one per input.
+    """
+    YF = np.asarray(YF)
+    if YF.ndim != 1 or YF.size == 0:
+        raise ValueError('"YF" must be a non-empty one-dimensional array.')
+
+    M = len(FC)
+    if M == 0 or len(FU) != M or len(xc) != M:
+        raise ValueError('"FU", "FC", and "xc" must have the same non-zero length.')
+    if not isinstance(n_col, (int, np.int8, np.int16, np.int32, np.int64)):
+        raise ValueError('"n_col" must be scalar and integer.')
+    if n_col < 1:
+        raise ValueError('"n_col" must be positive.')
+
+    if not X_Labels:
+        X_Labels = ['X' + str(i + 1) for i in range(M)]
+    elif (not isinstance(X_Labels, list) or len(X_Labels) != M or
+          not all(isinstance(label, str) for label in X_Labels)):
+        raise ValueError('"X_Labels" must be a list of M strings.')
+
+    if X_ticklabels is not None:
+        if (not isinstance(X_ticklabels, (list, tuple)) or
+                len(X_ticklabels) != M):
+            raise ValueError(
+                '"X_ticklabels" must contain one sequence or None per input.')
+        for i, labels in enumerate(X_ticklabels):
+            if labels is not None and (
+                    not isinstance(labels, (list, tuple, np.ndarray)) or
+                    len(labels) != len(xc[i]) or
+                    not all(isinstance(label, str) for label in labels)):
+                raise ValueError(
+                    'Each non-None "X_ticklabels[i]" must contain one string '
+                    'per center.')
+
+    if colorbar_ticklabels is not None:
+        if (not isinstance(colorbar_ticklabels, (list, tuple, np.ndarray)) or
+                len(colorbar_ticklabels) != len(YF) or
+                not all(isinstance(label, str) for label in colorbar_ticklabels)):
+            raise ValueError(
+                '"colorbar_ticklabels" must contain one string per value in "YF".')
+    if not isinstance(colorbar_label, str):
+        raise ValueError('"colorbar_label" must be a string.')
+
+    P = len(YF)
+    for i in range(M):
+        if np.asarray(FU[i]).shape != (P,):
+            raise ValueError('Each "FU[i]" must have the same length as "YF".')
+        if len(FC[i]) == 0 or np.asarray(xc[i]).shape != (len(FC[i]),):
+            raise ValueError('Each "xc[i]" must have one center per conditional PMF.')
+        if any(np.asarray(pmf).shape != (P,) for pmf in FC[i]):
+            raise ValueError('Each conditional PMF must have the same length as "YF".')
+
+    n_col = min(n_col, M)
+    n_row = int(np.ceil(M / n_col))
+    fig = plt.figure(layout='constrained')
+    axes = np.array([fig.add_subplot(n_row, n_col, i + 1) for i in range(M)])
+
+    n_levels = len(YF)
+    if colors is None:
+        cmap = mpl.cm.get_cmap('viridis', n_levels)
+    else:
+        if len(colors) != n_levels:
+            raise ValueError("colors must have one entry per output level")
+        cmap = mpl.colors.ListedColormap(colors)
+    boundaries = np.arange(n_levels + 1) - 0.5
+    norm = mpl.colors.BoundaryNorm(boundaries, cmap.N)
+    color_map = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+    color_map.set_array([])
+
+    for i, ax in enumerate(axes):
+        centers = np.asarray(xc[i])
+        order = np.argsort(centers)
+        centers = centers[order]
+        if X_ticklabels is None or X_ticklabels[i] is None:
+            tick_labels = [f'{value:.1f}' for value in centers]
+        else:
+            tick_labels = np.asarray(X_ticklabels[i])[order].tolist()
+
+        for j in range(n_levels):
+            color = cmap(j)
+            conditional_probability = np.asarray(
+                [FC[i][k][j] for k in order])
+            ax.plot(centers, conditional_probability, color=color,
+                    linewidth=1.8, linestyle='-', marker='o')
+            ax.axhline(FU[i][j], color=color, linewidth=1.2,
+                       linestyle='--', alpha=0.85)
+
+        ax.set_xticks(centers, labels=tick_labels)
+        ax.set_xlabel(X_Labels[i])
+        ax.set_ylabel('Probability')
+        ax.set_ylim(-0.02, 1.02)
+        ax.grid(True, alpha=0.2)
+
+    tick_indices = np.unique(np.linspace(
+        0, n_levels - 1, min(n_levels, 10), dtype=int))
+    colorbar = fig.colorbar(color_map, ax=axes.tolist(),
+                            boundaries=boundaries, ticks=tick_indices)
+    colorbar.set_label(colorbar_label)
+    if colorbar_ticklabels is None:
+        tick_labels = [str(YF[j]) for j in tick_indices]
+    else:
+        tick_labels = [colorbar_ticklabels[j] for j in tick_indices]
+    colorbar.set_ticklabels(tick_labels)
+
+    return fig, axes
+
+
 def pawn_plot_ks(YF, FU, FC, xc, n_col=5, X_Labels='',
                  output_condition=allrange, par=[]):
 
